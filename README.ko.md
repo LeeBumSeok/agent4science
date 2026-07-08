@@ -1,4 +1,4 @@
-# oh-my-ai4science
+# agent4science
 
 [English](README.md) | **한국어**
 
@@ -14,7 +14,7 @@
 루프에 저렴하게 엮을 수 있는 대상이 아닙니다. 반대로 CLI에서 돌릴 수 있는 코딩 모델들은
 구현은 훌륭하지만 그런 깊은 연구 판단에는 약합니다.
 
-oh-my-ai4science는 이 간극을 잇습니다: **어려운 사고는 당신에게 가장 똑똑한 웹 모델에서 하고,
+agent4science는 이 간극을 잇습니다: **어려운 사고는 당신에게 가장 똑똑한 웹 모델에서 하고,
 그 대화 전체를 코딩 에이전트로 넘기면** 실험을 구현·실행·분석하고, 결과를 다시 웹으로 가져갈
 프롬프트까지 만들어 다음 반복으로 이어줍니다. 특정 제품을 꼭 쓰라는 게 아니라 하나의 *형식*
 입니다: 판단은 웹 추론에, 재현 가능한 실행은 당신의 터미널에.
@@ -190,7 +190,7 @@ handoff는 **신뢰할 수 없는 입력**입니다. 세 겹으로 실행을 방
 bun 불필요):
 
 ```bash
-npm test                    # node --test — 코어 + 어댑터 73개 테스트
+npm test                    # node --test — 코어 + 어댑터 75개 테스트
 npm run lint:frontmatter    # 모든 command/agent 마크다운 파일 검증
 node scripts/build-cross-agent.js   # claude/ 와 codex/ 자산을 소스에서 재생성
 ```

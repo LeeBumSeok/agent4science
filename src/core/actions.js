@@ -164,13 +164,18 @@ export async function actImportConversation(root, url, { fetchImpl, now } = {}) 
   });
   writeState(root, 'handoff_imported', { now, note: `imported full ${provider} conversation` });
 
+  const warn = (convo.warnings && convo.warnings.length)
+    ? '\n\nWARNING: ' + convo.warnings.join(' ')
+    : '';
+
   return {
     status: 'imported',
     provider,
     title: convo.title,
     messageCount: convo.messageCount,
+    warnings: convo.warnings || [],
     provenance: prov,
-    message: `Imported full ${provider} conversation "${convo.title}" (${convo.messageCount} turns) → .ai4science/pro_conversation.md. State: handoff_imported. Next: /ai4s-validate (it will derive the research plan from the conversation).`,
+    message: `Imported full ${provider} conversation "${convo.title}" (${convo.messageCount} turns) → .ai4science/pro_conversation.md. State: handoff_imported. Next: /ai4s-validate (it will derive the research plan from the conversation).${warn}`,
   };
 }
 

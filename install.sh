@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# install.sh — install oh-my-ai4science into a coding agent's config.
+# install.sh — install agent4science into a coding agent's config.
 #
 # Usage:
 #   ./install.sh [DIR] [--global] [--target opencode|claude|codex|all] [--singular]

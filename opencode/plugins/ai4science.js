@@ -1,5 +1,5 @@
 /**
- * ai4science.js — OpenCode plugin entry point (oh-my-ai4science).
+ * ai4science.js — OpenCode plugin entry point (agent4science).
  *
  * Thin adapter: it wires the tested orchestration functions in ./lib/actions.js to
  * OpenCode custom tools and a `tool.execute.before` safety hook. All real logic lives in

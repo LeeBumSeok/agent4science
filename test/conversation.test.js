@@ -132,6 +132,26 @@ test('htmlToConversation throws a clear error when no conversation is present', 
   );
 });
 
+test('htmlToConversation flags redacted deep-research shares and drops the placeholder', () => {
+  const html = makeFixtureHtml([
+    { role: 'user', text: 'research agentic RL for me' },
+    { role: 'assistant', text: 'The output of this plugin was redacted.' },
+  ]);
+  const r = htmlToConversation(html, {});
+  // the redaction placeholder is dropped; only the real prompt remains
+  assert.equal(r.messageCount, 1);
+  assert.equal(r.messages[0].role, 'user');
+  assert.ok(r.warnings.length >= 1);
+  assert.match(r.warnings[0], /deep-research|redacted/i);
+});
+
+test('htmlToConversation throws a helpful error when a share is fully redacted', () => {
+  const html = makeFixtureHtml([
+    { role: 'assistant', text: 'The output of this plugin was redacted.' },
+  ]);
+  assert.throws(() => htmlToConversation(html, {}), /redacted/i);
+});
+
 test('parseShareUrl detects ChatGPT vs Claude and picks the right fetch URL', () => {
   const cg = parseShareUrl('https://chatgpt.com/share/00000000-0000-4000-8000-000000000001');
   assert.equal(cg.provider, 'chatgpt');

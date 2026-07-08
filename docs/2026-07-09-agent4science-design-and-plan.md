@@ -1,4 +1,4 @@
-# agent4science (oh-my-ai4science) — 설계 및 구현 플랜
+# agent4science — 설계 및 구현 플랜
 
 - 날짜: 2026-07-09
 - 위치: `~/workspace/agent4science`

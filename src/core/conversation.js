@@ -177,6 +177,9 @@ function messageText(message) {
  * @param {any} root
  * @returns {Array<{role: string, text: string}>}
  */
+/** ChatGPT redacts tool/plugin output (e.g. a deep-research report) in public shares. */
+const REDACTION_RE = /output of this plugin was redacted/i;
+
 export function extractMessages(root) {
   const linear = deepFind(root, 'linear_conversation');
   if (!Array.isArray(linear)) return [];
@@ -187,6 +190,7 @@ export function extractMessages(root) {
     if (role !== 'user' && role !== 'assistant') continue;
     const text = messageText(message);
     if (!text) continue;
+    if (REDACTION_RE.test(text)) continue; // a redacted tool-output placeholder, not content
     msgs.push({ role, text });
   }
   return msgs;
@@ -233,15 +237,30 @@ function extractTitle(html) {
 export function htmlToConversation(html, meta = {}) {
   const { root } = decodeShareHtml(html);
   const messages = extractMessages(root);
+  const redacted = REDACTION_RE.test(html);
   if (messages.length === 0) {
+    if (redacted) {
+      throw new Error(
+        'the share appears to be a deep-research result whose report ChatGPT redacted in the ' +
+          'public share — paste the report text manually instead',
+      );
+    }
     throw new Error('could not extract any conversation turns from the share page');
   }
   const title = extractTitle(html);
+  const warnings = redacted
+    ? [
+        'This looks like a deep-research share: ChatGPT redacted the report from the public ' +
+          'share, so only the prompt (and any non-redacted turns) were imported. Paste the ' +
+          'report text manually if you need it.',
+      ]
+    : [];
   return {
     markdown: conversationToMarkdown(messages, { ...meta, title, provider: 'chatgpt' }),
     title,
     messageCount: messages.length,
     messages,
+    warnings,
   };
 }
 

@@ -62,7 +62,7 @@ function done(result) {
 }
 
 function usage() {
-  console.log(`agent4science — oh-my-ai4science for coding agents
+  console.log(`agent4science — AI4Science research pipeline for coding agents
 
 Install (registers agents/commands into a coding agent's config):
   agent4science install [DIR] [--global] [--target opencode|claude|codex|all] [--singular]

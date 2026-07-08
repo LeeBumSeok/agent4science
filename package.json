@@ -1,7 +1,7 @@
 {
   "name": "agent4science",
   "version": "0.1.0",
-  "description": "oh-my-ai4science — an OpenCode plugin that turns ChatGPT Pro research conversations into reproducible CLI-driven experiments",
+  "description": "agent4science — a plugin/agent for OpenCode, Claude Code, and Codex that turns a web research conversation (ChatGPT, Claude, ...) into reproducible, CLI-driven experiments",
   "type": "module",
   "bin": {
     "agent4science": "bin/agent4science.js"

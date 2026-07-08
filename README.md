@@ -1,4 +1,4 @@
-# oh-my-ai4science
+# agent4science
 
 **English** | [한국어](README.ko.md)
 
@@ -15,7 +15,7 @@ also, for most people, not something you drive from a terminal or cheaply script
 agent loop. Meanwhile the coding models you *can* run in the CLI are excellent at
 implementation but weaker at that deep research judgment.
 
-oh-my-ai4science bridges the gap: **do the hard thinking in whatever web model is smartest for
+agent4science bridges the gap: **do the hard thinking in whatever web model is smartest for
 you, then hand the whole conversation to your coding agent**, which implements, runs, and
 analyzes the experiments — and produces a prompt to take the results back to the web for the
 next iteration. This isn't a mandate to use any one product; it's a *format*: web reasoning for
@@ -198,7 +198,7 @@ The core logic is pure JavaScript under `src/core/`, tested with Node's built-in
 OpenCode or bun required):
 
 ```bash
-npm test                    # node --test — 73 tests across core + adapter
+npm test                    # node --test — 75 tests across core + adapter
 npm run lint:frontmatter    # validate every command/agent markdown file
 node scripts/build-cross-agent.js   # regenerate claude/ and codex/ assets from source
 ```
