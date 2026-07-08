@@ -203,6 +203,39 @@ test('actImportConversation fetches, saves the transcript, and advances state', 
   })();
 });
 
+test('actImportConversation imports a Claude share (snapshot JSON)', async () => {
+  const root = tmp();
+  try {
+    actScaffold(root, { goal: 'g', now: '2026-07-09T00:00:00Z' });
+    const snapshot = JSON.stringify({
+      snapshot_name: 'Paper review',
+      chat_messages: [
+        { sender: 'human', text: 'review this paper?' },
+        { sender: 'assistant', text: 'here is my review' },
+      ],
+    });
+    let calledUrl = '';
+    const fetchImpl = async (u) => {
+      calledUrl = u;
+      return { ok: true, status: 200, text: async () => snapshot };
+    };
+    const r = await actImportConversation(
+      root,
+      'https://claude.ai/share/00000000-0000-4000-8000-000000000002',
+      { fetchImpl, now: '2026-07-09T00:10:00Z' },
+    );
+    assert.equal(r.status, 'imported');
+    assert.equal(r.provider, 'claude');
+    assert.equal(r.messageCount, 2);
+    assert.ok(calledUrl.startsWith('https://api.anthropic.com/api/chat_snapshots/'));
+    const prov = JSON.parse(readFileSync(join(root, '.ai4science/provenance.json'), 'utf8'));
+    assert.equal(prov.provider, 'claude');
+    assert.ok(prov.shared_link.includes('claude.ai'));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('actImportConversation rejects a bad link and a bot-blocked fetch', async () => {
   const root = tmp();
   try {

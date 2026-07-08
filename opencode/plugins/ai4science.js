@@ -8,7 +8,6 @@
  * OpenCode never mistakes a core module for a plugin).
  */
 
-import https from 'node:https';
 import { tool } from '@opencode-ai/plugin';
 import {
   actScaffold,
@@ -20,55 +19,9 @@ import {
   actSafetyCheck,
   safetyHook,
 } from '../ai4s-core/actions.js';
+import { robustFetch } from '../ai4s-core/fetch.js';
 
 const s = tool.schema;
-
-/**
- * Fetch a public URL with node:https, following redirects. Tries with certificate
- * verification first; on a TLS/cert failure (common with a misconfigured local CA store)
- * it retries once without verification, since this only ever fetches a public share page
- * the user explicitly provided.
- */
-function httpsGet(url, headers, rejectUnauthorized) {
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers, rejectUnauthorized }, (res) => {
-      const { statusCode, headers: h } = res;
-      if ([301, 302, 303, 307, 308].includes(statusCode) && h.location) {
-        res.resume();
-        resolve(httpsGet(new URL(h.location, url).toString(), headers, rejectUnauthorized));
-        return;
-      }
-      let data = '';
-      res.setEncoding('utf8');
-      res.on('data', (c) => (data += c));
-      res.on('end', () =>
-        resolve({ ok: statusCode >= 200 && statusCode < 300, status: statusCode, text: async () => data }),
-      );
-    });
-    req.on('error', reject);
-    // Never hang: a stalled connection must fall through to the next strategy.
-    req.setTimeout(20000, () => req.destroy(new Error('request timeout')));
-  });
-}
-
-async function robustFetch(url, opts = {}) {
-  const headers = opts.headers || {};
-  // 1. Global fetch first — under Bun (OpenCode's runtime) it has a working CA store.
-  if (typeof fetch === 'function') {
-    try {
-      const r = await fetch(url, { headers });
-      if (r && r.ok) return r;
-    } catch {
-      /* fall through */
-    }
-  }
-  // 2. node:https with verification, then 3. without (public page, misconfigured local CA).
-  try {
-    return await httpsGet(url, headers, true);
-  } catch {
-    return await httpsGet(url, headers, false);
-  }
-}
 
 export const AI4SciencePlugin = async ({ directory, worktree }) => {
   const root = directory || worktree || process.cwd();
@@ -117,9 +70,9 @@ export const AI4SciencePlugin = async ({ directory, worktree }) => {
 
       ai4s_import_conversation: tool({
         description:
-          'Import a FULL ChatGPT conversation from a public share link (replaces a compact handoff). Fetches the share page, decodes the transcript, saves it to .ai4science/pro_conversation.md, and advances state to handoff_imported. The shared link is recorded as provenance.',
+          'Import a FULL shared conversation from ChatGPT (chatgpt.com/share/...) or Claude (claude.ai/share/...) into .ai4science/pro_conversation.md, and advance state to handoff_imported. Replaces a compact handoff. The shared link is recorded as provenance.',
         args: {
-          url: s.string().describe('The ChatGPT share URL (https://chatgpt.com/share/...) or bare id'),
+          url: s.string().describe('A ChatGPT or Claude share URL (or bare share id)'),
         },
         async execute(args) {
           const r = await actImportConversation(root, args.url, { fetchImpl: robustFetch });

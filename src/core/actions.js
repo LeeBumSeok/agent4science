@@ -22,7 +22,7 @@ import {
 import { canAdvance, nextState } from './state.js';
 import { screenCommand } from './safety.js';
 import { kickoffPrompt, handoffRequestPrompt, reviewPrompt } from './prompts.js';
-import { parseShareId, htmlToConversation } from './conversation.js';
+import { parseShareUrl, decodeConversation } from './conversation.js';
 
 const BROWSER_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -39,7 +39,7 @@ export function actScaffold(root, { goal, now } = {}) {
     created,
     message:
       created.length > 0
-        ? `Initialized .ai4science/ (state: initialized). Next: /ai4s-pro-prompt to draft a ChatGPT Pro research prompt.`
+        ? `Initialized .ai4science/ (state: initialized). Next: /ai4s-pro-prompt to draft a prompt for your web research model (e.g. GPT Pro, Claude/Fable).`
         : `.ai4science/ already initialized. Current state: ${readState(root).state}.`,
   };
 }
@@ -107,61 +107,70 @@ export function actIngest(root, text, { sharedLink, now } = {}) {
  * @param {{fetchImpl?: Function, now?: string}} opts
  */
 export async function actImportConversation(root, url, { fetchImpl, now } = {}) {
-  let id;
+  let target;
   try {
-    id = parseShareId(url);
+    target = parseShareUrl(url);
   } catch (err) {
-    return { status: 'error', message: `Not a valid ChatGPT share link: ${err.message}` };
+    return {
+      status: 'error',
+      message: `Not a valid ChatGPT or Claude share link: ${err.message}`,
+    };
   }
+  const { provider, fetchUrl } = target;
+  const shareUrl = url;
 
   const doFetch = fetchImpl || (typeof fetch === 'function' ? fetch : null);
   if (!doFetch) {
     return { status: 'error', message: 'No fetch implementation available in this runtime.' };
   }
 
-  const shareUrl = `https://chatgpt.com/share/${id}`;
-  let html;
+  const accept = target.kind === 'json' ? 'application/json' : 'text/html';
+  let raw;
   try {
-    const resp = await doFetch(shareUrl, { headers: { 'User-Agent': BROWSER_UA } });
+    const resp = await doFetch(fetchUrl, {
+      headers: { 'User-Agent': BROWSER_UA, Accept: accept },
+    });
     if (!resp || resp.ok === false) {
       return {
         status: 'error',
-        message: `Failed to fetch the share page (HTTP ${resp && resp.status}). The page may be private or bot-blocked. As a fallback, copy the conversation text and use /ai4s-ingest with a handoff, or paste the transcript manually.`,
+        message: `Failed to fetch the ${provider} share (HTTP ${resp && resp.status}). The page may be private, unshared, or bot-blocked. As a fallback, paste the conversation text or an AI4S-HANDOFF-V1 block via /ai4s-ingest.`,
       };
     }
-    html = await resp.text();
+    raw = await resp.text();
   } catch (err) {
     return {
       status: 'error',
-      message: `Network error fetching the share page: ${err.message}. If this is a TLS/certificate issue, set NODE_EXTRA_CA_CERTS, or paste the conversation manually.`,
+      message: `Network error fetching the ${provider} share: ${err.message}. If this is a TLS/certificate issue, set NODE_EXTRA_CA_CERTS, or paste the conversation manually.`,
     };
   }
 
   let convo;
   try {
-    convo = htmlToConversation(html, { shareUrl });
+    convo = decodeConversation({ provider, raw, shareUrl });
   } catch (err) {
     return {
       status: 'error',
-      message: `Could not extract a conversation from that page: ${err.message}. The share format may have changed; paste the conversation text manually instead.`,
+      message: `Could not extract a conversation from that ${provider} share: ${err.message}. The share format may have changed; paste the conversation text manually instead.`,
     };
   }
 
   const prov = saveConversation(root, convo.markdown, {
     shared_link: shareUrl,
+    provider,
     conversation_title: convo.title,
     imported_at: now || new Date().toISOString(),
     import_method: 'share_fetch',
     message_count: convo.messageCount,
   });
-  writeState(root, 'handoff_imported', { now, note: 'imported full conversation' });
+  writeState(root, 'handoff_imported', { now, note: `imported full ${provider} conversation` });
 
   return {
     status: 'imported',
+    provider,
     title: convo.title,
     messageCount: convo.messageCount,
     provenance: prov,
-    message: `Imported full conversation "${convo.title}" (${convo.messageCount} turns) → .ai4science/pro_conversation.md. State: handoff_imported. Next: /ai4s-validate (it will derive the research plan from the conversation).`,
+    message: `Imported full ${provider} conversation "${convo.title}" (${convo.messageCount} turns) → .ai4science/pro_conversation.md. State: handoff_imported. Next: /ai4s-validate (it will derive the research plan from the conversation).`,
   };
 }
 

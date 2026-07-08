@@ -2,11 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseShareId,
+  parseShareUrl,
   extractEnqueues,
   decodeShareHtml,
   extractMessages,
   conversationToMarkdown,
   htmlToConversation,
+  claudeSnapshotToConversation,
+  decodeConversation,
 } from '../src/core/conversation.js';
 
 /**
@@ -127,4 +130,56 @@ test('htmlToConversation throws a clear error when no conversation is present', 
     () => htmlToConversation('<html><body>login shell only</body></html>', {}),
     /could not extract|no conversation/i,
   );
+});
+
+test('parseShareUrl detects ChatGPT vs Claude and picks the right fetch URL', () => {
+  const cg = parseShareUrl('https://chatgpt.com/share/00000000-0000-4000-8000-000000000001');
+  assert.equal(cg.provider, 'chatgpt');
+  assert.equal(cg.kind, 'html');
+  assert.ok(cg.fetchUrl.startsWith('https://chatgpt.com/share/'));
+
+  const cl = parseShareUrl('https://claude.ai/share/00000000-0000-4000-8000-000000000002');
+  assert.equal(cl.provider, 'claude');
+  assert.equal(cl.kind, 'json');
+  assert.equal(cl.fetchUrl, 'https://api.anthropic.com/api/chat_snapshots/00000000-0000-4000-8000-000000000002');
+
+  // bare id defaults to chatgpt for back-compat
+  assert.equal(parseShareUrl('00000000-0000-4000-8000-000000000001').provider, 'chatgpt');
+});
+
+test('claudeSnapshotToConversation parses the snapshot JSON shape', () => {
+  const snapshot = {
+    snapshot_name: 'Paper review',
+    chat_messages: [
+      { sender: 'human', text: 'review this paper?' },
+      { sender: 'assistant', text: '', content: [{ type: 'text', text: 'Here is my review.' }] },
+      { sender: 'assistant', text: '   ' }, // empty → dropped
+    ],
+  };
+  const r = claudeSnapshotToConversation(JSON.stringify(snapshot), {
+    shareUrl: 'https://claude.ai/share/x',
+  });
+  assert.equal(r.messageCount, 2);
+  assert.equal(r.title, 'Paper review');
+  assert.deepEqual(r.messages.map((m) => m.role), ['user', 'assistant']);
+  assert.ok(r.markdown.includes('review this paper?'));
+  assert.ok(r.markdown.includes('Here is my review.'));
+  assert.match(r.markdown, /Provider:\*\*\s*claude/);
+});
+
+test('claudeSnapshotToConversation throws on an empty snapshot', () => {
+  assert.throws(
+    () => claudeSnapshotToConversation(JSON.stringify({ chat_messages: [] })),
+    /could not extract|no conversation/i,
+  );
+});
+
+test('decodeConversation dispatches by provider', () => {
+  const claudeJson = JSON.stringify({
+    snapshot_name: 'C',
+    chat_messages: [{ sender: 'human', text: 'hi' }, { sender: 'assistant', text: 'hello' }],
+  });
+  const r = decodeConversation({ provider: 'claude', raw: claudeJson, shareUrl: 'https://claude.ai/share/x' });
+  assert.equal(r.messageCount, 2);
+  assert.equal(r.messages[0].role, 'user');
 });

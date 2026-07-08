@@ -6,13 +6,24 @@
   "bin": {
     "agent4science": "bin/agent4science.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeeBumSeok/agent4science.git"
+  },
+  "homepage": "https://github.com/LeeBumSeok/agent4science#readme",
+  "bugs": {
+    "url": "https://github.com/LeeBumSeok/agent4science/issues"
+  },
   "files": [
     "bin/",
     "install.sh",
     "opencode/",
+    "claude/",
+    "codex/",
     "src/core/",
     "schema/",
     "README.md",
+    "README.ko.md",
     "LICENSE"
   ],
   "keywords": [

@@ -1,14 +1,17 @@
 /**
- * conversation.js — extract a full ChatGPT conversation from a public /share/ page.
+ * conversation.js — extract a full shared conversation from a public link.
  *
- * The share page embeds the conversation in React Router's turbo-stream format: a flat pool
- * of values where objects/arrays reference other entries by numeric index, and object keys
- * are themselves `_<index>` references into the pool. This module decodes that pool, walks it
- * for the `linear_conversation`, and renders a clean Markdown transcript.
+ * Two providers are supported:
+ *  - ChatGPT (`chatgpt.com/share/<id>`): the share page server-renders the conversation in
+ *    React Router's turbo-stream format — a flat pool of values where objects/arrays
+ *    reference other entries by numeric index and keys are `_<index>` references. We decode
+ *    the pool and walk it for `linear_conversation`.
+ *  - Claude (`claude.ai/share/<id>`): the page is a client-rendered SPA, but the snapshot is
+ *    served as JSON from `api.anthropic.com/api/chat_snapshots/<id>`. We parse that directly.
  *
- * Only the public share HTML is used (the backend-api endpoint is bot-blocked). This runs at
- * the user's explicit request on a link they chose to share — a single fetch, not bulk
- * scraping. It is pure (no network); the caller passes the already-fetched HTML.
+ * Everything here is pure (no network); the caller passes the already-fetched body. This runs
+ * only at the user's explicit request on a link they chose to share — a single fetch, not
+ * bulk scraping.
  */
 
 const SHARE_ID_RE = /([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/;
@@ -23,6 +26,31 @@ export function parseShareId(urlOrId) {
   const m = urlOrId.match(SHARE_ID_RE);
   if (!m) throw new Error(`could not find a share id in: ${urlOrId}`);
   return m[1];
+}
+
+/**
+ * Detect the provider and the URL/format to fetch for a share link.
+ * @param {string} urlOrId
+ * @returns {{provider: 'chatgpt'|'claude', id: string, fetchUrl: string, kind: 'html'|'json'}}
+ */
+export function parseShareUrl(urlOrId) {
+  const id = parseShareId(urlOrId);
+  const s = String(urlOrId);
+  if (/claude\.ai/i.test(s)) {
+    return {
+      provider: 'claude',
+      id,
+      fetchUrl: `https://api.anthropic.com/api/chat_snapshots/${id}`,
+      kind: 'json',
+    };
+  }
+  // chatgpt.com, chat.openai.com, or a bare id (back-compat default).
+  return {
+    provider: 'chatgpt',
+    id,
+    fetchUrl: `https://chatgpt.com/share/${id}`,
+    kind: 'html',
+  };
 }
 
 /**
@@ -171,7 +199,8 @@ export function extractMessages(root) {
  * @returns {string}
  */
 export function conversationToMarkdown(messages, meta = {}) {
-  const head = [`# ChatGPT Pro Research Conversation`, ''];
+  const head = [`# Imported Research Conversation`, ''];
+  if (meta.provider) head.push(`**Provider:** ${meta.provider}`);
   if (meta.title) head.push(`**Title:** ${meta.title}`);
   if (meta.shareUrl) head.push(`**Source (provenance only):** ${meta.shareUrl}`);
   head.push(`**Turns:** ${messages.length}`, '');
@@ -209,9 +238,60 @@ export function htmlToConversation(html, meta = {}) {
   }
   const title = extractTitle(html);
   return {
-    markdown: conversationToMarkdown(messages, { ...meta, title }),
+    markdown: conversationToMarkdown(messages, { ...meta, title, provider: 'chatgpt' }),
     title,
     messageCount: messages.length,
     messages,
   };
+}
+
+/**
+ * Decode a Claude share snapshot JSON (from api.anthropic.com/api/chat_snapshots/<id>).
+ * @param {string|object} json  the snapshot JSON (string or already-parsed object)
+ * @param {{shareUrl?: string}} meta
+ * @returns {{markdown: string, title: string, messageCount: number, messages: Array}}
+ */
+export function claudeSnapshotToConversation(json, meta = {}) {
+  let data;
+  try {
+    data = typeof json === 'string' ? JSON.parse(json) : json;
+  } catch (err) {
+    throw new Error(`could not parse Claude snapshot JSON: ${err.message}`);
+  }
+  const raw = (data && (data.chat_messages || data.messages)) || [];
+  const messages = [];
+  for (const m of raw) {
+    const sender = m && (m.sender || m.role);
+    const role = sender === 'human' ? 'user' : sender;
+    if (role !== 'user' && role !== 'assistant') continue;
+    let text = typeof m.text === 'string' ? m.text : '';
+    if (!text.trim() && Array.isArray(m.content)) {
+      text = m.content
+        .map((c) => (typeof c === 'string' ? c : c && typeof c.text === 'string' ? c.text : ''))
+        .filter(Boolean)
+        .join('\n');
+    }
+    text = (text || '').trim();
+    if (!text) continue;
+    messages.push({ role, text });
+  }
+  if (messages.length === 0) {
+    throw new Error('could not extract any conversation turns from the Claude snapshot');
+  }
+  const title = (data && (data.snapshot_name || data.name)) || '';
+  return {
+    markdown: conversationToMarkdown(messages, { ...meta, title, provider: 'claude' }),
+    title,
+    messageCount: messages.length,
+    messages,
+  };
+}
+
+/**
+ * Unified decoder: dispatch on provider to the right parser.
+ * @param {{provider: 'chatgpt'|'claude', raw: string, shareUrl?: string}} input
+ */
+export function decodeConversation({ provider, raw, shareUrl }) {
+  if (provider === 'claude') return claudeSnapshotToConversation(raw, { shareUrl });
+  return htmlToConversation(raw, { shareUrl });
 }
