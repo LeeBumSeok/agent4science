@@ -234,7 +234,59 @@ for (const step of STEPS) {
   writeFileSync(join(root, 'codex/prompts', `${step.name}.md`), header + step.body + '\n');
 }
 
+// ---- Plugin manifests (Claude Code + Codex share the same marketplace/plugin format) ----
+// The plugin root is ./claude (commands/ + agents/ + skills/). The marketplace.json at the
+// repo root lets `claude plugin marketplace add` and `codex plugin marketplace add` find it.
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const repoUrl = (pkg.repository && pkg.repository.url ? pkg.repository.url : '')
+  .replace(/^git\+/, '')
+  .replace(/\.git$/, '');
+
+mkdirSync(join(root, 'claude/.claude-plugin'), { recursive: true });
+writeFileSync(
+  join(root, 'claude/.claude-plugin/plugin.json'),
+  JSON.stringify(
+    {
+      name: 'agent4science',
+      description: pkg.description,
+      version: pkg.version,
+      author: { name: 'LeeBumSeok' },
+      homepage: pkg.homepage,
+      repository: repoUrl,
+      license: pkg.license,
+      keywords: pkg.keywords,
+    },
+    null,
+    2,
+  ) + '\n',
+);
+
+mkdirSync(join(root, '.claude-plugin'), { recursive: true });
+writeFileSync(
+  join(root, '.claude-plugin/marketplace.json'),
+  JSON.stringify(
+    {
+      name: 'agent4science',
+      description: 'agent4science — AI4Science research pipeline for coding agents',
+      owner: { name: 'LeeBumSeok' },
+      plugins: [
+        {
+          name: 'agent4science',
+          description: pkg.description,
+          version: pkg.version,
+          source: './claude',
+          author: { name: 'LeeBumSeok' },
+        },
+      ],
+    },
+    null,
+    2,
+  ) + '\n',
+);
+
 console.log('Generated Claude Code + Codex assets:');
 console.log('  claude/agents:', readdirSync(join(root, 'claude/agents')).length);
 console.log('  claude/commands:', readdirSync(join(root, 'claude/commands')).length);
+console.log('  claude/skills:', readdirSync(join(root, 'claude/skills')).length, '(hand-maintained)');
 console.log('  codex/prompts:', readdirSync(join(root, 'codex/prompts')).length);
+console.log('  plugin manifests: claude/.claude-plugin/plugin.json, .claude-plugin/marketplace.json');

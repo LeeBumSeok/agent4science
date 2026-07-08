@@ -67,11 +67,13 @@ install_opencode() {
 install_claude() {
   local cdir; if [[ "$GLOBAL" -eq 1 ]]; then cdir="$HOME/.claude"; else cdir="${TARGET_DIR:-$(pwd)}/.claude"; fi
   echo "Claude Code → $cdir"
-  mkdir -p "$cdir/agents" "$cdir/commands"
+  mkdir -p "$cdir/agents" "$cdir/commands" "$cdir/skills"
   cp "$SRC_DIR"/claude/agents/*.md "$cdir/agents/"
   cp "$SRC_DIR"/claude/commands/*.md "$cdir/commands/"
-  echo "  ai4science agent + @ai4s-* subagents + /ai4s-* commands registered."
-  echo "  NOTE: install the CLI so commands work:  npm install -g agent4science"
+  cp -R "$SRC_DIR"/claude/skills/* "$cdir/skills/"
+  echo "  ai4science agent + @ai4s-* subagents + /ai4s-* commands + agent4science skill registered."
+  echo "  NOTE: install the CLI so these work:  npm install -g agent4science"
+  echo "  (Or install as a plugin instead — see the README: claude plugin marketplace add LeeBumSeok/agent4science)"
 }
 
 install_codex() {

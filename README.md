@@ -25,20 +25,45 @@ coding agent you already have.
 
 ## Quick start
 
-Install once. You need the CLI on your PATH (Claude Code and Codex call it), and one command
-per coding agent you use:
+First, the CLI (Claude Code and Codex call it under the hood):
 
 ```bash
 npm install -g agent4science
-
-agent4science install --global                  # OpenCode
-agent4science install --global --target claude  # Claude Code
-agent4science install --global --target codex   # Codex
-agent4science install --global --target all     # or just do all of them
 ```
 
-Restart your coding agent so it picks up the new commands. Now you have a set of `/ai4s-*`
-commands. Here's a full run, start to finish:
+Then set it up in your coding agent. **Restart the agent afterward** so it picks up the new
+commands.
+
+**OpenCode** — installs a native plugin plus the `ai4science` agent and `/ai4s-*` commands:
+
+```bash
+agent4science install --global
+# verify it registered:  opencode agent list   (you should see "ai4science (primary)")
+```
+
+Then open OpenCode and press **Tab** to switch to the `ai4science` agent.
+
+**Claude Code and Codex** — install it as a plugin. This registers the `/ai4s-*` commands, the
+subagents, and an **agent4science skill** that the agent invokes on its own when you mention
+research. It works the same for both:
+
+```bash
+# Claude Code
+claude plugin marketplace add LeeBumSeok/agent4science
+claude plugin install agent4science@agent4science
+
+# Codex
+codex plugin marketplace add LeeBumSeok/agent4science
+codex plugin add agent4science@agent4science
+```
+
+(Prefer plain files over a plugin? `agent4science install --global --target claude` and
+`--target codex` copy the commands, agents, skill, and prompts into `~/.claude` and
+`~/.codex` directly.)
+
+Now you have a set of `/ai4s-*` commands — and in Claude Code or Codex you can also just *ask*
+("use agent4science to turn this idea into an experiment") and it'll take over. Here's a full
+run, start to finish:
 
 ```
 # 1. Start a project and say what you're studying.

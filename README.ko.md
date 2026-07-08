@@ -24,20 +24,42 @@ agent4science가 그 둘을 이어줍니다. **OpenCode**, **Claude Code**, **Co
 
 ## 빠른 시작
 
-한 번만 설치하면 됩니다. CLI가 PATH에 있어야 하고(Claude Code와 Codex가 이걸 호출합니다),
-쓰는 코딩 에이전트마다 한 줄씩:
+먼저 CLI부터 (Claude Code와 Codex가 내부적으로 호출합니다):
 
 ```bash
 npm install -g agent4science
-
-agent4science install --global                  # OpenCode
-agent4science install --global --target claude  # Claude Code
-agent4science install --global --target codex   # Codex
-agent4science install --global --target all     # 아니면 한 번에 전부
 ```
 
-새 커맨드를 인식하도록 코딩 에이전트를 재시작하세요. 이제 `/ai4s-*` 커맨드가 생겼습니다.
-처음부터 끝까지 한 번 돌려보면 이렇습니다:
+그다음 코딩 에이전트에 등록합니다. **등록 후엔 에이전트를 재시작**해야 새 커맨드를 인식합니다.
+
+**OpenCode** — 네이티브 플러그인 + `ai4science` 에이전트 + `/ai4s-*` 커맨드를 설치합니다:
+
+```bash
+agent4science install --global
+# 등록 확인:  opencode agent list   ("ai4science (primary)"가 보여야 함)
+```
+
+그다음 OpenCode를 열고 **Tab**을 눌러 `ai4science` 에이전트로 전환합니다.
+
+**Claude Code와 Codex** — 플러그인으로 설치합니다. `/ai4s-*` 커맨드, 서브에이전트, 그리고
+연구 얘기를 꺼내면 에이전트가 알아서 발동하는 **agent4science 스킬**까지 등록됩니다. 양쪽 방식이
+동일합니다:
+
+```bash
+# Claude Code
+claude plugin marketplace add LeeBumSeok/agent4science
+claude plugin install agent4science@agent4science
+
+# Codex
+codex plugin marketplace add LeeBumSeok/agent4science
+codex plugin add agent4science@agent4science
+```
+
+(플러그인 대신 파일 복사가 좋다면 `agent4science install --global --target claude`,
+`--target codex`가 커맨드·에이전트·스킬·프롬프트를 `~/.claude`, `~/.codex`에 직접 넣습니다.)
+
+이제 `/ai4s-*` 커맨드가 생겼고, Claude Code나 Codex에서는 그냥 *부탁*만 해도("이 아이디어를
+agent4science로 실험으로 만들어줘") 알아서 진행합니다. 처음부터 끝까지 한 번 돌려보면 이렇습니다:
 
 ```
 # 1. 프로젝트를 시작하고 뭘 연구할지 적습니다.

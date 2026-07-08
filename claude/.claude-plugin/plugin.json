@@ -1,0 +1,19 @@
+{
+  "name": "agent4science",
+  "description": "agent4science — a plugin/agent for OpenCode, Claude Code, and Codex that turns a web research conversation (ChatGPT, Claude, ...) into reproducible, CLI-driven experiments",
+  "version": "1.0.0",
+  "author": {
+    "name": "LeeBumSeok"
+  },
+  "homepage": "https://github.com/LeeBumSeok/agent4science#readme",
+  "repository": "https://github.com/LeeBumSeok/agent4science",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "ai4science",
+    "research-agent",
+    "chatgpt",
+    "agent"
+  ]
+}

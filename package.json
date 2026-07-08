@@ -20,6 +20,7 @@
     "opencode/",
     "claude/",
     "codex/",
+    ".claude-plugin/",
     "src/core/",
     "schema/",
     "README.md",
