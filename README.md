@@ -5,6 +5,23 @@
 An [OpenCode](https://opencode.ai) plugin that turns **ChatGPT Pro (web)** research
 conversations into **reproducible, CLI-driven experiments**.
 
+## Why ChatGPT Pro?
+
+ChatGPT Pro gives you OpenAI's most capable reasoning modes — the strongest available for the
+*hard* part of research: judging whether an idea is novel, poking holes in an experimental
+design, weighing alternatives, interpreting messy results. But that capability lives in the
+**web app**. You can't drive it from your terminal, and you can't practically wire it into a
+CLI agent loop — there is no CLI for it, and scripting against its top tier isn't cheap. The
+models you *can* run in the CLI are excellent at implementation, yet weaker at that deep
+research judgment.
+
+oh-my-ai4science bridges the gap: **do the hard thinking in ChatGPT Pro, then hand the whole
+conversation to OpenCode**, where a CLI agent implements, runs, and analyzes the experiments —
+and produces a prompt to take the results back to Pro for the next iteration. Smart research
+judgment stays in the web; reproducible execution stays in your terminal.
+
+## How you use it
+
 You use ChatGPT Pro as the research PI — brainstorm ideas, sharpen hypotheses, design
 experiments. Then you bring the research into OpenCode either by **importing the whole shared
 conversation** (`/ai4s-import-conversation <share-url>`) or by pasting a compact
@@ -181,4 +198,3 @@ hand instead. Either way, the share link is stored only as a provenance URL.
 
 Do not put sensitive research data in a shared link: anyone with the link can view it, and it
 has no expiry or granular permissions.
-```
