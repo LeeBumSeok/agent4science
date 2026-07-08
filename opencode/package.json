@@ -1,0 +1,9 @@
+{
+  "name": "ai4science-opencode-runtime",
+  "private": true,
+  "type": "module",
+  "description": "Runtime dependencies for the ai4science OpenCode plugin. OpenCode runs `bun install` here automatically.",
+  "dependencies": {
+    "yaml": "^2.4.0"
+  }
+}

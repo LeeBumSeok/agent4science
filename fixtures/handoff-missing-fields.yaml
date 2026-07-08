@@ -1,0 +1,25 @@
+schema: AI4S-HANDOFF-V1
+
+# Intentionally incomplete handoff used to exercise `needs_revision`.
+# Missing: project.research_question, experiment.baselines, experiment.metrics.primary,
+# experiment.success_criteria, experiment.failure_criteria, experiment.seeds,
+# implementation.tasks, analysis_plan.required_checks, safety.risk_level, cli_must_not.
+
+project:
+  name: "incomplete-project"
+  domain: "machine learning"
+
+hypothesis:
+  id: H001
+  statement: "A vaguely stated hypothesis with no experiment behind it."
+
+experiment:
+  id: E001
+  objective: "Unspecified"
+
+implementation:
+  language: "Python"
+
+commands:
+  run:
+    - "python experiments/run.py"

@@ -1,0 +1,151 @@
+schema: AI4S-HANDOFF-V1
+
+source:
+  shared_link: "https://chatgpt.com/share/example-abc123"
+  conversation_title: "Small-data generalization for molecular property prediction"
+  created_at: "2026-07-09"
+  notes: "Shared link is provenance only; this YAML is the execution spec."
+
+project:
+  name: "moleculenet-smalldata-reg"
+  domain: "machine learning"
+  user_goal: "Improve generalization of molecular property prediction on small datasets"
+  research_question: "Does a physics-based regularization term lower validation RMSE for a GNN in the low-data regime?"
+
+constraints:
+  compute_budget: "CPU only, <= 30 min per run"
+  time_budget: "2 hours"
+  allowed_data:
+    - "public datasets"
+  disallowed_data:
+    - "private or sensitive data"
+  allowed_actions:
+    - "read repo"
+    - "write code under repo"
+    - "run local experiments"
+  disallowed_actions:
+    - "external purchases"
+    - "submit jobs to paid cloud services"
+
+hypothesis:
+  id: H001
+  statement: "Adding a physics-based regularizer lowers validation RMSE versus baseline in the low-data regime."
+  mechanism: "The regularizer constrains the hypothesis space, reducing overfitting."
+  novelty_rationale:
+    - "Rarely applied to this low-data setting."
+  assumptions:
+    - assumption: "A small public subset is available"
+      risk: "low"
+  why_it_might_be_wrong:
+    - "Too strong a regularizer causes underfitting"
+
+rejected_alternatives:
+  - id: H002
+    statement: "Fine-tune a large pretrained model"
+    reason_rejected: "Exceeds compute budget"
+
+experiment:
+  id: E001
+  objective: "Test H001 at minimal cost"
+  minimal_viable_experiment: "Same GNN with regularization on/off, 3 seeds"
+  dataset:
+    name: "small public regression subset"
+    source: "public"
+    fallback: "synthetic toy regression"
+  baselines:
+    - name: "gnn_no_reg"
+      description: "Same GNN without regularization"
+  method_under_test:
+    name: "gnn_phys_reg"
+    description: "Add a physics-based regularization term to the loss"
+  ablations:
+    - "Halve the regularization coefficient"
+  metrics:
+    primary:
+      name: "val_rmse"
+      direction: "lower_is_better"
+      reason: "Direct measure of regression generalization"
+    secondary:
+      - name: "train_time_s"
+        reason: "Confirm budget compliance"
+  success_criteria:
+    - "val_rmse drops >= 5% vs baseline, averaged over 3 seeds"
+  failure_criteria:
+    - "Baseline cannot be reproduced"
+    - "Method does not beat baseline on any of the 3 seeds"
+  interpretation_rules:
+    positive: "Preliminary evidence that physics regularization helps in low data"
+    negative: "It does not help in this setting"
+    inconclusive: "Seed variance exceeds the effect size"
+  seeds:
+    - 0
+    - 1
+    - 2
+
+implementation:
+  language: "Python"
+  package_manager: "pip"
+  expected_repo_changes:
+    - path: "experiments/run_e001.py"
+      purpose: "Experiment runner"
+    - path: "src/reg.py"
+      purpose: "Physics-based regularization term"
+  tasks:
+    - id: T001
+      title: "Inspect repository structure"
+      acceptance: "Identify training/evaluation entrypoints"
+    - id: T002
+      title: "Implement baseline runner"
+      acceptance: "Baseline produces a metrics JSON"
+    - id: T003
+      title: "Implement the regularization term"
+      acceptance: "Proposed method produces same metric schema"
+
+commands:
+  setup:
+    - "python -m venv .venv"
+    - "pip install -r requirements.txt"
+  test:
+    - "pytest -q"
+  run:
+    - "python experiments/run_e001.py --method baseline --seed 0"
+    - "python experiments/run_e001.py --method proposed --seed 0"
+  analyze:
+    - "python experiments/analyze_e001.py"
+
+artifacts:
+  results_dir: ".ai4science/results/e001"
+  metrics_file: ".ai4science/results/e001/metrics.csv"
+  log_dir: ".ai4science/results/e001/logs"
+  report_file: ".ai4science/reports/e001_report.md"
+
+analysis_plan:
+  required_checks:
+    - "Verify all seeds completed"
+    - "Compare primary metric against baselines"
+    - "Report mean and standard deviation"
+  figures:
+    - "Bar chart of primary metric by method"
+
+safety:
+  risk_level: "low"
+  constraints:
+    - "Do not use private data"
+  human_review_required: false
+
+reproducibility:
+  required:
+    - "Record package versions"
+    - "Record exact commands"
+    - "Record random seeds"
+
+cli_must_not:
+  - "Silently change the hypothesis"
+  - "Remove failed runs"
+  - "Claim success without metrics"
+
+return_to_pro:
+  summary_prompt_requirements:
+    - "final hypothesis"
+    - "metrics table"
+    - "failure logs if any"

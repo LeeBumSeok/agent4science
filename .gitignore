@@ -1,0 +1,4 @@
+node_modules/
+.ai4science/
+*.log
+.DS_Store

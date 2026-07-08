@@ -1,0 +1,39 @@
+{
+  "name": "agent4science",
+  "version": "0.1.0",
+  "description": "oh-my-ai4science — an OpenCode plugin that turns ChatGPT Pro research conversations into reproducible CLI-driven experiments",
+  "type": "module",
+  "bin": {
+    "agent4science": "bin/agent4science.js"
+  },
+  "files": [
+    "bin/",
+    "install.sh",
+    "opencode/",
+    "src/core/",
+    "schema/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "ai4science",
+    "research-agent",
+    "chatgpt",
+    "agent"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "lint:frontmatter": "node scripts/lint-frontmatter.js",
+    "install:global": "bash install.sh --global",
+    "prepublishOnly": "node --test && node scripts/lint-frontmatter.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "yaml": "^2.4.0"
+  },
+  "license": "MIT"
+}
