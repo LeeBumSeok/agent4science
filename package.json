@@ -1,6 +1,6 @@
 {
   "name": "agent4science",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "agent4science — a plugin/agent for OpenCode, Claude Code, and Codex that turns a web research conversation (ChatGPT, Claude, ...) into reproducible, CLI-driven experiments",
   "type": "module",
   "bin": {
