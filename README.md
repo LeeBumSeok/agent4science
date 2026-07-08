@@ -2,128 +2,137 @@
 
 **English** | [한국어](README.ko.md)
 
-A plugin/agent — for **OpenCode**, **Claude Code**, and **Codex** — that turns a web research
-conversation into **reproducible, CLI-driven experiments**.
+Do your research thinking in a top web chatbot, then let your coding agent actually run the
+experiments. agent4science connects the two, and works with **OpenCode**, **Claude Code**, and
+**Codex**.
 
-## Why a web research model?
+## The idea in one minute
 
-The best place to *get and pressure-test research ideas* today is a **web chat with the
-smartest model you have access to** — for example **GPT Pro** or **Claude / Fable**. That's
-where the strongest reasoning lives: judging whether an idea is novel, poking holes in an
-experimental design, weighing alternatives, interpreting messy results. Those top web modes are
-also, for most people, not something you drive from a terminal or cheaply script into a CLI
-agent loop. Meanwhile the coding models you *can* run in the CLI are excellent at
-implementation but weaker at that deep research judgment.
+When you're figuring out *what* to research — is this idea new? does the experiment actually
+test it? what's the smallest version worth running? — the best tool is usually a chat with the
+smartest model you can reach, like GPT Pro or Claude/Fable. But those live in a browser. You
+can't point your coding agent at them, and running the report through an API isn't cheap.
 
-agent4science bridges the gap: **do the hard thinking in whatever web model is smartest for
-you, then hand the whole conversation to your coding agent**, which implements, runs, and
-analyzes the experiments — and produces a prompt to take the results back to the web for the
-next iteration. This isn't a mandate to use any one product; it's a *format*: web reasoning for
-judgment, your terminal for reproducible execution.
+So agent4science splits the work the natural way:
 
-## How you use it
+- **The web chatbot does the thinking.** You brainstorm and pressure-test the idea there.
+- **Your coding agent does the doing.** It reads that conversation, writes the code, runs the
+  experiments, checks the numbers, and writes up what happened.
+- **Then it hands you a prompt to paste back into the web** for the next round.
 
-Use a web model as the research PI — brainstorm ideas, sharpen hypotheses, design experiments.
-Then bring the research into your coding agent either by **importing the whole shared
-conversation** (`/ai4s-import-conversation <share-url>` — works with ChatGPT *and* Claude share
-links) or by pasting a compact `AI4S-HANDOFF-V1` block (`/ai4s-ingest`). From there the pipeline
-drives the rest: validate → plan → implement → run → analyze → report → and generate the
-next-iteration prompt for the web.
+You're not locked into any one product. Use whatever web model is smartest for you; use whatever
+coding agent you already have.
 
-No LLM API is used. The only network call is a single, user-initiated fetch of a public share
-page you explicitly provide; the link is stored as a provenance URL. See the
-[sharing note](#a-note-on-sharing) below.
+## Quick start
 
-On OpenCode the `ai4science` primary agent is what you see and switch to; it delegates to
-specialist subagents. On Claude Code and Codex the same pipeline runs through the
-`agent4science` CLI.
-
-## Why this shape
-
-- **Web research model** (GPT Pro, Claude/Fable, …) = deep research judgment (novelty, study
-  design, interpretation).
-- **Your coding agent** (OpenCode / Claude Code / Codex) = implementation, experiments,
-  analysis, reproducibility.
-- **The `AI4S-HANDOFF-V1` block** = the single execution contract between them. The CLI
-  executes the *spec*, not the free-form conversation.
-- **The `.ai4science/` ledger** = the single source of truth: state, handoff, provenance,
-  run registry, reports.
-
-## Install
-
-Pick your coding agent with `--target` (default `opencode`):
+Install once. You need the CLI on your PATH (Claude Code and Codex call it), and one command
+per coding agent you use:
 
 ```bash
-# via the npm bin (like oh-my-openagent's installer)
-npm install -g agent4science          # also needed for Claude Code / Codex (they use the CLI)
+npm install -g agent4science
 
-agent4science install --global                      # OpenCode, all projects
-agent4science install --global --target claude      # Claude Code (~/.claude)
-agent4science install --global --target codex       # Codex (~/.codex/prompts)
-agent4science install --global --target all         # all three
-
-# or from a clone of this repo, the same via install.sh
-./install.sh --global --target all
-./install.sh /path/to/project --target opencode     # project-local .opencode/
+agent4science install --global                  # OpenCode
+agent4science install --global --target claude  # Claude Code
+agent4science install --global --target codex   # Codex
+agent4science install --global --target all     # or just do all of them
 ```
 
-That's the whole "registration" — each agent **auto-loads** what's placed in its config
-directory, so there's nothing to hand-edit. The installer:
-
-- **OpenCode**: copies the JS plugin (core library into a sibling `.opencode/ai4s-core/`), the
-  `/ai4s-*` commands, and the agents (`ai4science` primary + `@ai4s-*` subagents), and
-  **auto-provisions the `yaml` dependency**. Detects singular/plural dir names (`--singular`
-  forces `plugin/ command/ agent/`).
-- **Claude Code**: copies the `ai4science` + `@ai4s-*` subagents to `.claude/agents/` and the
-  `/ai4s-*` slash commands to `.claude/commands/`. Commands drive the `agent4science` CLI.
-- **Codex**: copies the `/ai4s-*` custom prompts to `~/.codex/prompts/`, which also drive the CLI.
-
-After installing, restart your coding agent. On OpenCode the `ai4science` agent shows in the TUI
-switcher (Tab); on all three, the `/ai4s-*` commands are ready.
-
-## Supported coding agents
-
-| Agent | How the tools run | Assets installed |
-|---|---|---|
-| [OpenCode](https://opencode.ai) | native JS plugin (custom tools + `tool.execute.before` safety hook) | plugin, `ai4science` primary agent, `@ai4s-*` subagents, `/ai4s-*` commands |
-| [Claude Code](https://claude.com/claude-code) | `agent4science` CLI via Bash | `ai4science` + `@ai4s-*` subagents, `/ai4s-*` commands |
-| [Codex CLI](https://developers.openai.com/codex/cli) | `agent4science` CLI via shell | `/ai4s-*` custom prompts |
-
-The pipeline logic is identical everywhere — it lives in the core the OpenCode plugin and the
-`agent4science` CLI both call.
-
-## The workflow
+Restart your coding agent so it picks up the new commands. Now you have a set of `/ai4s-*`
+commands. Here's a full run, start to finish:
 
 ```
-/ai4s-init <goal>          Initialize the .ai4science/ ledger.
-/ai4s-pro-prompt           Generate the research-discussion prompt → paste into your web model.
-   (discuss in the web model: clarify question, hypotheses, minimal experiment)
+# 1. Start a project and say what you're studying.
+/ai4s-init  Does a physics-based regularizer help a GNN on small molecular datasets?
 
-   Then bring the research in via EITHER path:
-   A) Full conversation (recommended):
-      /ai4s-import-conversation <share-url>   Fetch + decode a ChatGPT or Claude share.
-   B) Compact handoff:
-      /ai4s-handoff-request                   Get the "produce handoff" instruction → paste in.
-      /ai4s-ingest <block>                    Validate + save the AI4S-HANDOFF-V1 block.
+# 2. Get a prompt to kick off the research chat, and paste it into GPT Pro or Claude.
+/ai4s-pro-prompt
+#    → talk it through in the browser: sharpen the question, pick one hypothesis,
+#      design the smallest experiment that could prove it wrong.
 
-/ai4s-validate             Deep validation. For a compact handoff, validates it; for a full
-                           conversation, derives a structured handoff.yaml from the transcript
-                           (or reports honestly if the conversation has no concrete experiment).
-/ai4s-plan                 Repo map + implementation plan (2 subagents)
-/ai4s-implement            Implement the plan + smoke test
-/ai4s-run                  Smoke test, then seeded experiments; every run recorded
-/ai4s-analyze              Analyze vs. pre-registered plan → analysis.md
-/ai4s-report               Write the research report
-/ai4s-pro-review           Build the next-iteration prompt → paste into your web model, and loop
-/ai4s-status               Show current state, next step, missing artifacts
+# 3. Share that conversation (ChatGPT: Share → Create link; Claude: Share → Create link)
+#    and hand the link back:
+/ai4s-import-conversation  https://chatgpt.com/share/....
+
+# 4. Turn the discussion into a concrete plan, then build and run it.
+/ai4s-validate     # pull a structured experiment spec out of the conversation
+/ai4s-plan         # look at the repo, write a minimal implementation plan
+/ai4s-implement    # write the code + a smoke test
+/ai4s-run          # run the smoke test, then the experiment across seeds
+/ai4s-analyze      # compare against the baseline, honestly
+
+# 5. Get a summary prompt to take the results back to the web for the next round.
+/ai4s-pro-review
 ```
 
-`/ai4s-status` tells you where you are at any point.
+Lost track of where you are? Run `/ai4s-status` any time — it tells you the current step and
+what to do next.
 
-## State machine
+## The commands
 
-The pipeline advances one step at a time, and each forward transition requires the previous
-step's artifact to exist on disk:
+| Command | What it does |
+|---|---|
+| `/ai4s-init <goal>` | Start a project (creates the `.ai4science/` folder). |
+| `/ai4s-pro-prompt` | Write a prompt to start the research chat in your web model. |
+| `/ai4s-import-conversation <url>` | Pull in a whole shared ChatGPT or Claude conversation. |
+| `/ai4s-ingest` | Or paste a compact `AI4S-HANDOFF-V1` block instead of a link. |
+| `/ai4s-validate` | Turn the conversation into a concrete, checkable experiment spec. |
+| `/ai4s-plan` | Map the repo and write a minimal implementation plan. |
+| `/ai4s-implement` | Write the code and a smoke test. |
+| `/ai4s-run` | Run the smoke test, then the experiment across seeds. |
+| `/ai4s-analyze` | Analyze the results against the plan; write it up. |
+| `/ai4s-report` | Produce the research report. |
+| `/ai4s-pro-review` | Build the next-round prompt to paste back into the web model. |
+| `/ai4s-status` | Show where the project stands and what's next. |
+
+On OpenCode you'll also see an **`ai4science`** agent in the agent switcher (press Tab) that
+drives all of this for you. On Claude Code and Codex the same commands run through the CLI.
+
+## Two ways to bring your research in
+
+**Import the whole conversation** (recommended). Share the chat and give the link to
+`/ai4s-import-conversation`. It fetches that one public page you pointed it at, saves the full
+transcript to `.ai4science/pro_conversation.md`, and `/ai4s-validate` works out the experiment
+spec from there. Works with:
+
+- **ChatGPT** — `chatgpt.com/share/...`
+- **Claude** — `claude.ai/share/...`
+
+(Heads up: if the chat was a ChatGPT *deep research* run, its report is redacted from the public
+share, so only your prompt comes through. agent4science tells you when that happens — paste the
+report text in yourself if you need it.)
+
+**Or paste a handoff block.** If you'd rather not share a link, ask the web model to produce an
+`AI4S-HANDOFF-V1` block and paste it into `/ai4s-ingest`. A bit more manual, but it works with
+any model.
+
+Either way, the pipeline downstream is the same.
+
+## How it stays safe
+
+The imported conversation and any handoff are treated as **untrusted input** — they came from
+outside, so agent4science doesn't take them at their word:
+
+- **Nothing runs just because the handoff said so.** Every command it proposes is screened
+  first. Dangerous ones (recursive deletes, `sudo`, piping the internet into a shell, force
+  pushes, cloud CLIs, reading your credentials) are refused. On OpenCode this is enforced at
+  runtime for *every* shell command, not just the ones in the handoff.
+- **Steps run in order, and nothing gets quietly rewritten.** Failed runs are kept, not deleted.
+  The hypothesis, metrics, and success criteria you agreed on don't change behind your back.
+- **Missing or malformed input gets sent back, not guessed.** You get a short patch request to
+  paste into the web model, and try again.
+
+High-risk topics ask for your explicit go-ahead before the pipeline continues.
+
+## Under the hood
+
+A few details if you're curious — you don't need any of this to use it.
+
+**The `.ai4science/` folder** is the project's memory: current step, the imported conversation,
+where it came from, a log of every run, and the reports. Everything the pipeline knows lives
+there.
+
+**It moves one step at a time,** and won't skip ahead — each step needs the previous one's
+output on disk before it'll run:
 
 ```
 initialized → handoff_imported → validated → repo_mapped
@@ -131,94 +140,53 @@ initialized → handoff_imported → validated → repo_mapped
   → experiment_ran → analyzed → pro_feedback_ready
 ```
 
-A command refuses to run out of order and tells you which command to run first.
+**The `AI4S-HANDOFF-V1` block** is the little contract between the web chat and your agent — a
+YAML block with the research question, hypothesis, experiment (baseline, metric, success and
+failure criteria, seeds), tasks, and safety level. When you import a conversation, `/ai4s-validate`
+builds this for you. The full spec, with a worked example, is in
+[`schema/ai4s-handoff-v1.md`](schema/ai4s-handoff-v1.md).
 
-## Two ways to bring the research in
+**The agents** (on OpenCode and Claude Code): a primary `ai4science` agent runs the show and
+hands specific jobs to focused subagents:
 
-- **Full conversation (`/ai4s-import-conversation <share-url>`)** — fetches a public share
-  once (at your explicit request), decodes the transcript, and saves the entire conversation
-  to `.ai4science/pro_conversation.md`. The whole discussion becomes the research context;
-  `/ai4s-validate` then derives a structured `handoff.yaml` from it. The share link is stored
-  only as a provenance URL. Supported today:
-  - **ChatGPT** (`chatgpt.com/share/...`) — the share page server-renders the transcript.
-  - **Claude** (`claude.ai/share/...`) — the snapshot is read from the public
-    `api.anthropic.com/api/chat_snapshots/<id>` endpoint.
-- **Compact handoff (`/ai4s-ingest <block>`)** — you paste the `AI4S-HANDOFF-V1` block the web
-  model produced. Smaller, but you copy it by hand. Works with any model.
-
-Both converge on the same downstream pipeline (validate → plan → implement → run → analyze).
-
-## The handoff contract
-
-`AI4S-HANDOFF-V1` is a single YAML block. Its full specification — the same one you show
-ChatGPT Pro — lives in [`schema/ai4s-handoff-v1.md`](schema/ai4s-handoff-v1.md), with a
-complete worked example. Required top-level pieces: `project`, `hypothesis`, `experiment`
-(with at least one baseline, a primary metric, success/failure criteria, seeds),
-`implementation.tasks`, `analysis_plan`, `safety.risk_level`, and `cli_must_not`.
-
-## Safety
-
-The handoff is **untrusted input**. Three layers guard execution:
-
-1. **Schema validation** — missing required fields → `needs_revision` with a patch request to
-   paste back into ChatGPT Pro. Wrong schema id, dangerous commands, or artifact paths that
-   escape `.ai4science/` → `blocked` (nothing is saved).
-2. **Command denylist** — every command the handoff proposes, and every `bash` call inside an
-   ai4science project, is screened. Recursive force-deletes, `sudo`, piping remote content to
-   a shell, force pushes, cloud/infra CLIs, credential access, and more are refused. The
-   `tool.execute.before` hook enforces this at runtime; agents also self-check with the
-   `ai4s_safety_check` tool.
-3. **State machine + append-only registry** — steps run in order; failed runs are never
-   removed; the hypothesis, metrics, and success criteria are never silently changed.
-
-High-risk domains (`safety.risk_level: high`) require your explicit approval before the
-pipeline advances past validation.
-
-## Agents
-
-`ai4science` is a **primary** agent — it shows in the OpenCode TUI agent switcher (Tab) and
-drives the whole pipeline, delegating to the specialist **subagents** below. Subagents don't
-appear in the primary switcher by design; invoke them with `@ai4s-...` or let the `/ai4s-*`
-commands delegate to them automatically.
-
-| Agent | Mode | Role |
-|---|---|---|
-| `ai4science` | primary | PI orchestrator — visible in the TUI, drives the pipeline |
-| `@ai4s-intake-validator` | subagent | Validate the handoff as untrusted input |
-| `@ai4s-repo-cartographer` | subagent | Read-only survey of where the experiment should live |
-| `@ai4s-experiment-planner` | subagent | Turn handoff + repo map into a minimal plan |
-| `@ai4s-implementation-engineer` | subagent | Implement the plan faithfully, with smoke tests |
-| `@ai4s-experiment-runner` | subagent | Run only approved commands; record every run |
-| `@ai4s-result-analyst` | subagent | Analyze vs. the pre-registered plan; write the report |
-| `@ai4s-pro-feedback-composer` | subagent | Build the next-iteration web-model prompt |
+| Agent | Job |
+|---|---|
+| `ai4science` | Runs the pipeline (the one you talk to). |
+| `@ai4s-intake-validator` | Checks the handoff as untrusted input. |
+| `@ai4s-repo-cartographer` | Reads the repo to find where the experiment should live. |
+| `@ai4s-experiment-planner` | Turns the spec + repo into a minimal plan. |
+| `@ai4s-implementation-engineer` | Writes the code and smoke tests. |
+| `@ai4s-experiment-runner` | Runs approved commands and logs every run. |
+| `@ai4s-result-analyst` | Analyzes the results and writes the report. |
+| `@ai4s-pro-feedback-composer` | Drafts the next-round prompt for the web model. |
 
 ## Development
 
-The core logic is pure JavaScript under `src/core/`, tested with Node's built-in runner (no
-OpenCode or bun required):
+The logic lives in plain JavaScript under `src/core/`, tested with Node's built-in runner — no
+OpenCode or bun needed to run the tests:
 
 ```bash
-npm test                    # node --test — 75 tests across core + adapter
-npm run lint:frontmatter    # validate every command/agent markdown file
-node scripts/build-cross-agent.js   # regenerate claude/ and codex/ assets from source
+npm test                             # 75 tests
+npm run lint:frontmatter             # check the command/agent files
+node scripts/build-cross-agent.js    # regenerate the Claude Code + Codex assets
 ```
 
 Layout:
 
-- `src/core/` — `safety`, `state`, `handoff`, `conversation`, `ledger`, `prompts`, `fetch`,
-  `actions` (pure/testable); `install.sh` copies these into `.opencode/ai4s-core/`
-- `bin/agent4science.js` — the CLI: installer + pipeline subcommands (used by Claude Code/Codex)
-- `opencode/` — the OpenCode plugin (`plugins/ai4science.js`), commands, agents
-- `claude/`, `codex/` — generated Claude Code and Codex assets (from `scripts/build-cross-agent.js`)
-- `schema/`, `fixtures/`, `test/`, `install.sh`
+- `src/core/` — the actual logic (`safety`, `state`, `handoff`, `conversation`, `ledger`,
+  `prompts`, `fetch`, `actions`); all pure and testable.
+- `bin/agent4science.js` — the CLI: the installer, plus the subcommands Claude Code and Codex call.
+- `opencode/` — the OpenCode plugin, commands, and agents.
+- `claude/`, `codex/` — the Claude Code and Codex assets, generated from `src/` by the build script.
+- `schema/`, `fixtures/`, `test/`, `install.sh`.
 
 ## A note on sharing
 
-`/ai4s-import-conversation` performs a **single, user-initiated fetch** of a **public** share
-you explicitly created and handed to the tool — not bulk scraping, not bypassing
-authentication, not automating any web UI. It reads the conversation the public share already
-serves (ChatGPT or Claude). If you prefer to avoid any fetch, use `/ai4s-ingest` and paste the
-handoff by hand instead. Either way, the share link is stored only as a provenance URL.
+`/ai4s-import-conversation` fetches **one public page that you created and handed to it** — the
+share link. It's not scraping, it's not bypassing a login, and it's not automating a browser; it
+just reads what the public share page already shows. Prefer not to fetch anything? Use
+`/ai4s-ingest` and paste the handoff yourself. Either way, only the link is kept, as a record of
+where the research came from.
 
-Do not put sensitive research data in a shared link: anyone with the link can view it, and it
-has no expiry or granular permissions.
+One caution: a share link is public. Anyone with it can read the conversation, and it doesn't
+expire — so don't share anything sensitive.
